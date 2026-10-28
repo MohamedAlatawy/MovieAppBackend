@@ -1,0 +1,327 @@
+{
+  "info": {
+    "name": "MovieApp Bonus — Custom Backend API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Use the MovieApp Local environment. Run only the read-only folder in Collection Runner. Manual writes require a SEND ONCE confirmation consumed before sending; send them individually. PATCH in Auto mode can publish to all movies subscribers. No script sends another request or retries. Keep adminKey private and empty in shared exports. Device routes do not manage topic subscriptions. See BONUS_SETUP_GUIDE.md and BONUS_DEMO_WALKTHROUGH.md."
+  },
+  "auth": {
+    "type": "noauth"
+  },
+  "item": [
+    {
+      "name": "01 — Read-only API checks",
+      "description": "GET-only folder for manual use or Collection Runner. No edits or Firebase sends.",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/health",
+            "description": "Database connectivity. HTTP 200 with status healthy and dataSource synthetic-demo; not a Firebase readiness check."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Healthy demo database\", function () { const b = pm.response.json(); pm.expect(b.status).to.eql(\"healthy\"); pm.expect(b.dataSource).to.eql(\"synthetic-demo\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Movies — first page",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/movies?page={{page}}&pageSize={{pageSize}}",
+            "description": "Default page 1, pageSize 20. Fresh seed: 31 total, 20 items here. Ordered by ID. Envelope: items, page, pageSize, totalItems, totalPages, hasNextPage."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Movie page envelope\", function () {",
+                  "  const b = pm.response.json();",
+                  "  pm.expect(b.items).to.be.an(\"array\");",
+                  "  [\"page\", \"pageSize\", \"totalItems\", \"totalPages\"].forEach(function (k) { pm.expect(b[k]).to.be.a(\"number\"); });",
+                  "  pm.expect(b.hasNextPage).to.be.a(\"boolean\");",
+                  "  pm.expect(b.items.length).to.be.at.most(b.pageSize);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Movies — second page",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/movies?page={{secondPage}}&pageSize={{pageSize}}",
+            "description": "Default secondPage 2. Fresh seed with pageSize 20: 11 items, hasNextPage false. Page ranges 1-1000000; pageSize 1-100."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Movie page envelope\", function () {",
+                  "  const b = pm.response.json();",
+                  "  pm.expect(b.items).to.be.an(\"array\");",
+                  "  [\"page\", \"pageSize\", \"totalItems\", \"totalPages\"].forEach(function (k) { pm.expect(b[k]).to.be.a(\"number\"); });",
+                  "  pm.expect(b.hasNextPage).to.be.a(\"boolean\");",
+                  "  pm.expect(b.items.length).to.be.at.most(b.pageSize);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Search movies",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/movies/search?query={{query}}&page={{page}}&pageSize={{pageSize}}",
+            "description": "Nonblank query, maximum 200 characters, case-insensitive title match. Default toy matches two initial seed rows. Encode reserved characters in custom query values using Postman's Params editor. Same page envelope."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Movie page envelope\", function () {",
+                  "  const b = pm.response.json();",
+                  "  pm.expect(b.items).to.be.an(\"array\");",
+                  "  [\"page\", \"pageSize\", \"totalItems\", \"totalPages\"].forEach(function (k) { pm.expect(b[k]).to.be.a(\"number\"); });",
+                  "  pm.expect(b.hasNextPage).to.be.a(\"boolean\");",
+                  "  pm.expect(b.items.length).to.be.at.most(b.pageSize);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Movie details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/movies/{{movieId}}",
+            "description": "Default movieId 9001 is the dedicated synthetic edit record. Returns the movie directly; 404 if absent. Fields: id, title, overview, releaseDate, posterUrl, voteAverage, genres, adult, usCertification, lastModified, dataSource, eligibilityEvidence, isDemo."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Expected demo movie\", function () { const b = pm.response.json(); pm.expect(b.id).to.eql(Number(pm.variables.get(\"movieId\"))); pm.expect(b.title).to.be.a(\"string\"); pm.expect(b.lastModified).to.be.a(\"string\"); pm.expect(b.isDemo).to.eql(true); pm.expect(b.dataSource).to.eql(\"synthetic-demo\"); pm.expect(b.eligibilityEvidence).to.eql(\"unverified\"); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 — Manual demo edit, send individually",
+      "description": "Changes data. Do not include in routine collection runs. Local mode sends no FCM; Auto with configured Firebase may publish to all movies subscribers.",
+      "item": [
+        {
+          "name": "PATCH demo title — MANUAL ONCE",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Admin-Key",
+                "value": "{{adminKey}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/movies/{{movieId}}",
+            "description": "Set movieId=9001, a unique demoTitle and your private local adminKey. Set patchConfirmation=SEND ONCE, then click Send once. The flag is consumed before sending. Title-only partial object; no automatic retry. Inspect HTTP status and X-Notification-Status / X-Notification-Accepted. accepted + 1 means one publish accepted, not device receipt. Even failed dispatch can follow a committed edit. GET Details afterward; do not retry on ambiguity.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"{{demoTitle}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.environment.get(\"patchConfirmation\") !== \"SEND ONCE\") {",
+                  "  console.warn(\"PATCH skipped: arm patchConfirmation only for an intentional single Send.\");",
+                  "  pm.execution.skipRequest();",
+                  "}",
+                  "pm.environment.set(\"patchConfirmation\", \"\");",
+                  "const title = String(pm.variables.get(\"demoTitle\") || \"\").trim();",
+                  "const key = String(pm.variables.get(\"adminKey\") || \"\");",
+                  "if (String(pm.variables.get(\"movieId\")) !== \"9001\" || !title || title.length > 200 || key.length < 32 || key.length > 512) {",
+                  "  console.warn(\"PATCH skipped: require movieId 9001, a chosen title of 1-200 characters and a private adminKey of 32-512 characters.\");",
+                  "  pm.execution.skipRequest();",
+                  "}",
+                  "pm.request.body.update(JSON.stringify({ title: title }));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 — Optional compatibility device writes",
+      "description": "Not required for movies subscription. These store/remove a token in SQLite and do not send messages. Use the fake token in Local mode. Arm deviceConfirmation=SEND ONCE separately for each request.",
+      "item": [
+        {
+          "name": "Register compatibility token — MANUAL",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/devices/register",
+            "description": "Body: token, 20-4096 letters/digits/underscore/colon/hyphen. Existing token is refreshed. Expected 200 with status registered; no token returned. Optional Local-mode fake-token exercise. No admin key required. Does not subscribe topics.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{deviceToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.environment.get(\"deviceConfirmation\") !== \"SEND ONCE\") {",
+                  "  console.warn(\"Device write skipped: arm deviceConfirmation for this one request only.\");",
+                  "  pm.execution.skipRequest();",
+                  "}",
+                  "pm.environment.set(\"deviceConfirmation\", \"\");",
+                  "const token = String(pm.variables.get(\"deviceToken\") || \"\");",
+                  "if (token.length < 20 || token.length > 4096 || !/^[A-Za-z0-9_:\\-]+$/.test(token)) {",
+                  "  console.warn(\"Device write skipped: invalid token syntax.\");",
+                  "  pm.execution.skipRequest();",
+                  "}",
+                  "pm.request.body.update(JSON.stringify({ token: token }));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Unregister compatibility token — MANUAL",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/devices/unregister",
+            "description": "Body: same token. Idempotent removal by token possession; expected 204 with no body. Does not unsubscribe topic movies. No admin key required.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{deviceToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.environment.get(\"deviceConfirmation\") !== \"SEND ONCE\") {",
+                  "  console.warn(\"Device write skipped: arm deviceConfirmation for this one request only.\");",
+                  "  pm.execution.skipRequest();",
+                  "}",
+                  "pm.environment.set(\"deviceConfirmation\", \"\");",
+                  "const token = String(pm.variables.get(\"deviceToken\") || \"\");",
+                  "if (token.length < 20 || token.length > 4096 || !/^[A-Za-z0-9_:\\-]+$/.test(token)) {",
+                  "  console.warn(\"Device write skipped: invalid token syntax.\");",
+                  "  pm.execution.skipRequest();",
+                  "}",
+                  "pm.request.body.update(JSON.stringify({ token: token }));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
